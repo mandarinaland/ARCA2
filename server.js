@@ -1,28 +1,33 @@
-// server.js
 import express from "express";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
 import rateLimit from "express-rate-limit";
+import path from "path";
+import { fileURLToPath } from "url";
 
 dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
 
-// Limita les sol·licituds per seguretat i suavitat del flux
+// Rate limiting per IP
 const limiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minut
-  max: 10, // màxim 10 requests per IP/min
+  windowMs: 60 * 1000,
+  max: 10,
 });
 app.use(limiter);
 
-// Endpoint que gestiona el xat amb ARCA
+// Servir fitxers estàtics (frontend)
+app.use(express.static(path.join(__dirname, "public")));
+
+// Endpoint de xat ARCA
 app.post("/api/chat", async (req, res) => {
   try {
-    const { message, sessionId } = req.body;
+    const { message } = req.body;
     if (!message) return res.status(400).json({ error: "Missatge buit" });
 
-    // Crida a l'API de ChatGPT
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -34,11 +39,11 @@ app.post("/api/chat", async (req, res) => {
         messages: [
           {
             role: "system",
-            content: "Ets ARCA, la veu poètica i espiritual de Piath. Inspira sense imposar."
+            content: "Ets ARCA, la veu poètica i espiritual de Piath. Inspira sense imposar, guia amb ponts de llum."
           },
           { role: "user", content: message }
         ],
-        temperature: 0.7, // per to poètic i elevador
+        temperature: 0.7,
         max_tokens: 500
       })
     });
